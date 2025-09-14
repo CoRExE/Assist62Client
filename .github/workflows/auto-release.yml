@@ -1,0 +1,37 @@
+name: 🔀 Sync main to release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write  # autoriser les push dans repository
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # récupère toute l’historique
+
+      - name: Merge main into release
+        uses: devmasx/merge-branch@v1.4.0
+        with:
+          type: now
+          from_branch: main
+          target_branch: release
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger publish workflow
+        env:
+          PAT_WORKFLOW: ${{ secrets.PAT_WORKFLOW }}
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $PAT_WORKFLOW" \
+            https://api.github.com/repos/CoRExE/Tout-Do/actions/workflows/publish.yml/dispatches \
+            -d '{"ref":"release"}'
